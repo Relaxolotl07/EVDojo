@@ -1,0 +1,32 @@
+# Normalize line endings: keep LF in repo, use CRLF for Windows scripts where needed
+* text=auto
+
+# Force LF for source/text files
+*.py   text eol=lf
+*.js   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.jsx  text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini  text eol=lf
+*.csv  text eol=lf
+Dockerfile text eol=lf
+
+# Keep CRLF for Windows scripts
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Do not attempt to normalize binaries
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
