@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Comparative Coaching - Local Frontend</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div id="debugBanner" class="banner hidden">DEBUG MODE ACTIVE · Tokens: "yes"→positive, "no"→negative · Flags: [POS], [NEG], [ASK], [HEDGE]</div>
+      <h1>Comparative Coaching (Local)</h1>
+      <div class="row">
+        <label>Goal</label>
+        <input id="goal" type="text" placeholder="ask clearly and respectfully" />
+      </div>
+      <div class="row">
+        <label>User</label>
+        <input id="userId" type="text" placeholder="u_local" />
+        <button id="startBtn">Start Session</button>
+        <span id="sessionInfo" class="muted"></span>
+      </div>
+      <div class="row">
+        <label>Continuous Mode</label>
+        <select id="mode">
+          <option value="off">Off</option>
+          <option value="light">Light</option>
+          <option value="standard" selected>Standard</option>
+          <option value="intense">Intense</option>
+        </select>
+      </div>
+
+      <div class="editor">
+        <div class="meter" id="meter">Neutral</div>
+        <textarea id="editor" rows="8" placeholder="Type here..."></textarea>
+        <div id="debugHint" class="muted hidden" style="margin-top:6px; font-size:12px;">[DEBUG] Yes/no demo is enabled.</div>
+        <div id="suggestion" class="suggestion hidden">
+          <span id="suggestionLabel"></span>
+          <button id="applySuggestion">Apply</button>
+          <button id="dismissSuggestion" class="ghost">Dismiss</button>
+        </div>
+        <div id="spans" class="spans"></div>
+      </div>
+
+      <div class="actions">
+        <button id="genVariants">Generate Variants</button>
+        <button id="refreshRank" class="ghost">Refresh Rank</button>
+      </div>
+
+      <div class="row">
+        <h3>Ranking</h3>
+        <div id="rank"></div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+  </html>

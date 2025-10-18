@@ -1,0 +1,9 @@
+email_id,thread_id,subject,body,sender,date,topic_hint
+E1,T100,Request for update,"Hi team,
+Just checking in on the status of the Q3 report. Maybe we could share a draft by next week?",alice@example.com,2024-09-01,internal-request
+E2,T101,Follow-up meeting,"Hello,
+I think we should meet to finalize the scope. Could we meet tomorrow at 3pm in the office?",bob@example.com,2024-09-02,internal-request
+E3,T102,Support issue,"Hey there,
+The app is kind of slow on startup. Could you please advise next steps?",carol@example.com,2024-09-03,customer-support
+E4,T103,Coffee chat,"Hi,
+Perhaps we could grab coffee this week to discuss collaboration?",dave@example.com,2024-09-04,networking

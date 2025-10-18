@@ -1,0 +1,17 @@
+name = "evdojo-api-proxy"
+main = "worker-proxy.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+# Set this to your backend origin (Railway/Render/VPS) with FastAPI
+ORIGIN = "https://api.evdojo.com"
+
+# Route examples (choose one approach)
+#[[routes]]
+#pattern = "evdojo.com/api/*"
+#zone_name = "evdojo.com"
+
+#[[routes]]
+#pattern = "api.evdojo.com/*"
+#zone_name = "evdojo.com"
+

@@ -1,0 +1,47 @@
+# OS / Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
+ENV/
+.python-version
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+uvicorn.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js / Node (frontend-next)
+frontend-next/node_modules/
+frontend-next/.next/
+frontend-next/out/
+frontend-next/.turbo/
+frontend-next/.vercel/
+frontend-next/.env*
+
+# Local static frontend
+frontend/.DS_Store
+
+# Cloudflare (local state)
+cloudflare/.wrangler/
+cloudflare/.dev.vars
+
