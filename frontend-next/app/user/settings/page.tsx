@@ -6,7 +6,8 @@ import { api } from '../../../lib/api';
 export default function UserSettings() {
   const [topic, setTopic] = React.useState<string>('internal-request');
   const [current, setCurrent] = React.useState<string | null>(null);
-  React.useEffect(()=>{ api.get(`/users/me`).then(d => { setCurrent(d.preferred_topic); if (d.preferred_topic) setTopic(d.preferred_topic); }).catch(()=>{}); }, []);
+  type Me = { user_id: string; preferred_topic: string | null };
+  React.useEffect(()=>{ api.get<Me>(`/users/me`).then(d => { setCurrent(d.preferred_topic); if (d.preferred_topic) setTopic(d.preferred_topic); }).catch(()=>{}); }, []);
   async function save() {
     await api.post(`/users/me/topic`, { topic });
     setCurrent(topic);
@@ -20,4 +21,3 @@ export default function UserSettings() {
     </main>
   );
 }
-

@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: { appDir: true },
   async rewrites() {
     // Proxy API calls during dev to FastAPI to avoid CORS and env setup
     const backend = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
