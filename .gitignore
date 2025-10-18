@@ -45,3 +45,4 @@ frontend/.DS_Store
 cloudflare/.wrangler/
 cloudflare/.dev.vars
 
+emails.csv
