@@ -69,7 +69,12 @@ class Config:
     )
 
     # CORS / deployment
-    cors_allow_origins_env: str = field(default_factory=lambda: os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000,https://evdojo.com,https://www.evdojo.com,https://app.evdojo.com"))
+    cors_allow_origins_env: str = field(
+        default_factory=lambda: os.getenv(
+            "CORS_ALLOW_ORIGINS",
+            "http://localhost:3000,https://evdojo.pages.dev,https://evdojo.com,https://www.evdojo.com,https://app.evdojo.com",
+        )
+    )
     @property
     def cors_allow_origins(self) -> List[str]:
         return [o.strip() for o in self.cors_allow_origins_env.split(",") if o.strip()]

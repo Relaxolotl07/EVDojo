@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <filter id="s" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="180" height="180" rx="28" fill="#0f1115"/>
+  <g stroke="#e6e6e6" stroke-width="2" stroke-linecap="round" filter="url(#s)">
+    <path d="M130 36a70 70 0 0 1 14 42" />
+    <path d="M36 130a70 70 0 0 1 42 14" />
+  </g>
+  <g fill="#e6e6e6" font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial" font-weight="700" text-anchor="middle">
+    <text x="90" y="100" font-size="24" letter-spacing="10">D O J O</text>
+    <text x="90" y="118" font-size="9">E [ V ]</text>
+  </g>
+</svg>
+
