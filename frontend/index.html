@@ -35,6 +35,9 @@
 
       @media (max-width: 820px){
         .item{ grid-template-columns: 1fr; }
+        /* On small screens force text first, image second for all items */
+        .item > .media-ph{ order: 2; }
+        .item > :not(.media-ph){ order: 1; }
         .media-ph{ height:140px }
       }
     </style>
