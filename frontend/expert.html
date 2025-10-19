@@ -31,7 +31,7 @@
           <input id="topic" type="text" placeholder="Email clarity" value="Email clarity" />
           <label>Rater ID</label>
           <input id="rater" type="text" placeholder="expert_ui" value="expert_ui" />
-          <button id="load">Load Queue</button>
+          <button id="load" onclick="location.href='/label.html'">Load Queue</button>
         </div>
         <div class="progress"><div class="bar" id="expBar"></div></div>
       </div>
@@ -55,8 +55,9 @@
       </div>
       <footer class="site-footer">Labeling interface — expert mode.</footer>
     </div>
-    <script src="/util.js"></script>
-    <script src="/compare.js"></script>
+    <!-- Testing: disable live expert functionality during routing validation -->
+    <!-- <script src="/util.js"></script> -->
+    <!-- <script src="/compare.js"></script> -->
   </body>
   <script src="/bg.js"></script>
 </html>

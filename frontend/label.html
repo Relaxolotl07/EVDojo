@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Label — Compare Emails</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .wrap{max-width:1100px;margin:40px auto;padding:0 20px}
+      .top{display:flex;justify-content:center;align-items:center;margin:22px 0 18px}
+      .title{font-weight:800;font-size:20px}
+      .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+      .email-card{min-height:320px; position:relative; cursor:pointer; transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background-color .12s ease}
+      .email-card:hover{transform:translateY(-2px); box-shadow:0 18px 42px rgba(0,0,0,0.25); background:#0e131c; border-color:#2a3142}
+      .email-body{white-space:pre-wrap;line-height:1.55;max-height:420px;overflow:auto}
+      .actions{display:flex;gap:12px;align-items:center;margin-top:18px}
+      .divider{height:1px;background:var(--border);margin:22px 0}
+      .hint{color:var(--muted);font-size:12px}
+      /* Select controls */
+      .select-row{display:flex;gap:12px;margin:8px 0 6px;align-items:center}
+      /* Hide the small circle selector; selection is indicated by full-card styling */
+      .select-btn{display:none}
+      .email-card.selected{border-color:var(--primary); background:linear-gradient(180deg, rgba(96,112,255,0.12), rgba(6,182,212,0.06)); box-shadow:0 0 0 2px rgba(96,112,255,0.28) inset}
+      .sr{position:absolute;left:-9999px}
+      /* Toast */
+      .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0e131c;border:1px solid #2a3142;color:#e6e6e6;padding:10px 12px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;z-index:50}
+      .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+
+      /* Back button (top-left) */
+      .back-btn{position:fixed;top:16px;left:16px;z-index:60;display:inline-flex;align-items:center;gap:8px;background:#0e131c;border:1px solid #2a3142;color:#e6e6e6;padding:8px 10px;border-radius:10px;cursor:pointer}
+      .back-btn:hover{border-color:#3a435a}
+      .back-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(96,112,255,0.45)}
+      .back-btn svg{width:16px;height:16px}
+      @media (max-width: 900px){ .pair{grid-template-columns:1fr} }
+    </style>
+  </head>
+  <body>
+    <div class="bg-decor">
+      <canvas class="bg-constellation"></canvas>
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+      <div class="blob b4"></div>
+      <div class="bg-shape square s1"></div>
+      <div class="bg-shape circle s2"></div>
+      <div class="bg-shape tri s3"></div>
+      <div class="bg-shape square s4"></div>
+      <div class="bg-shape circle s5"></div>
+    </div>
+
+    <button class="back-btn" onclick="history.back()" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+      <span class="sr">Back</span>
+    </button>
+
+    <div class="wrap">
+      <div class="top">
+        <img src="/logo.svg" alt="EVDojo" style="width:36px;height:36px;margin-right:10px"/>
+        <div class="title">Compare Emails</div>
+      </div>
+
+      <div class="pair">
+        <div class="card email-card" id="cardA" aria-labelledby="labelA" tabindex="0">
+          <div class="select-row">
+            <button class="select-btn" id="pickA" role="radio" aria-checked="false" aria-labelledby="labelA" title="Select A"></button>
+            <span id="labelA"><strong id="aSubject">A Subject</strong></span>
+          </div>
+          <div class="muted" style="margin-bottom:8px">Placeholder subject about scheduling a meeting</div>
+          <div class="email-body" id="aBody">Loading…</div>
+        </div>
+        <div class="card email-card" id="cardB" aria-labelledby="labelB" tabindex="0">
+          <div class="select-row">
+            <button class="select-btn" id="pickB" role="radio" aria-checked="false" aria-labelledby="labelB" title="Select B"></button>
+            <span id="labelB"><strong id="bSubject">B Subject</strong></span>
+          </div>
+          <div class="muted" style="margin-bottom:8px">Placeholder subject about scheduling a meeting</div>
+          <div class="email-body" id="bBody">Loading…</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label for="rationale">Why is your choice better? (optional)</label>
+      <input type="text" id="rationale" placeholder="Brief rationale or tags…" />
+      <div class="hint" style="margin-top:6px">Hint: note tone, clarity, ask, subject, or structure.</div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="continueBtn">Continue</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const pickA = document.getElementById('pickA');
+      const pickB = document.getElementById('pickB');
+      const cardA = document.getElementById('cardA');
+      const cardB = document.getElementById('cardB');
+      const aSubject = document.getElementById('aSubject');
+      const bSubject = document.getElementById('bSubject');
+      const aBody = document.getElementById('aBody');
+      const bBody = document.getElementById('bBody');
+      const rationale = document.getElementById('rationale');
+      const toast = document.getElementById('toast');
+      let choice = null;
+      let idx = 0;
+
+      const pairs = [
+        {
+          aSubject: 'Follow-up: Next steps and owners',
+          aBody: `Dear Team,
+
+Following up on our previous discussion, I’d like to confirm next steps and clarify ownership. Please review the attached notes and suggest any edits by EOD tomorrow.
+
+Best,
+Sender`,
+          bSubject: 'Quick sync on action items?',
+          bBody: `Hi all,
+
+Circling back here. Are we okay to proceed as discussed? If anything feels unclear, I can propose a short agenda and owners for each item.
+
+Thanks,
+Sender`,
+        },
+        {
+          aSubject: 'Scheduling: Confirm Friday 2pm?',
+          aBody: `Hi Alex,
+
+Can you confirm if Friday 2pm works for a 25-min check-in? I’ll share a brief agenda and notes beforehand.
+
+Cheers,
+Me`,
+          bSubject: 'Meeting time follow-up',
+          bBody: `Hey Alex,
+
+Haven’t heard back—just checking if any time Friday afternoon works for you. Happy to adjust around your calendar.
+
+Thanks,
+Me`,
+        },
+        {
+          aSubject: 'Proposal draft — request for feedback',
+          aBody: `Hi Priya,
+
+I’ve attached a brief proposal draft (2 pages). Could you flag any gaps or risky assumptions? A few guiding questions are on page 2.
+
+Thanks!
+Me`,
+          bSubject: 'Draft attached',
+          bBody: `Hi Priya,
+
+See attached draft. Let me know thoughts when you have a chance.
+
+Best,
+Me`,
+        },
+      ];
+
+      function render(){
+        const p = pairs[idx % pairs.length];
+        aSubject.textContent = p.aSubject;
+        bSubject.textContent = p.bSubject;
+        aBody.textContent = p.aBody;
+        bBody.textContent = p.bBody;
+        setChoice(null);
+        rationale.value = '';
+      }
+
+      function setChoice(c){
+        choice = c;
+        const aOn = c === 'A';
+        const bOn = c === 'B';
+        pickA.classList.toggle('checked', aOn); pickA.setAttribute('aria-checked', aOn);
+        pickB.classList.toggle('checked', bOn); pickB.setAttribute('aria-checked', bOn);
+        cardA.classList.toggle('selected', aOn);
+        cardB.classList.toggle('selected', bOn);
+      }
+      pickA.addEventListener('click', () => setChoice('A'));
+      pickB.addEventListener('click', () => setChoice('B'));
+      cardA.addEventListener('click', (e)=>{ if(e.target !== pickA) setChoice('A'); });
+      cardB.addEventListener('click', (e)=>{ if(e.target !== pickB) setChoice('B'); });
+      // Keyboard support: Enter/Space when card focused selects it
+      cardA.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setChoice('A'); }});
+      cardB.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setChoice('B'); }});
+
+      document.getElementById('continueBtn').addEventListener('click', () => {
+        // No validation required for text inputs; proceed regardless
+        // Toast
+        toast.textContent = choice ? `Thanks — recorded selection ${choice}.` : 'Thanks — continuing without selection.';
+        toast.classList.add('show'); setTimeout(()=> toast.classList.remove('show'), 1200);
+        // Next pair
+        idx++; render();
+      });
+
+      render();
+    </script>
+    <script src="/bg.js"></script>
+  </body>
+</html>
