@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EVDojo — Expert Labeling</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="celestial-bg">
+    <div class="container">
+      <div class="navbar">
+        <div class="brand"><div class="logo"></div><h1>EVDojo</h1></div>
+        <div class="navlinks"><a class="link" href="/">Home</a></div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <label>Topic</label>
+          <input id="topic" type="text" placeholder="Email clarity" value="Email clarity" />
+          <label>Rater ID</label>
+          <input id="rater" type="text" placeholder="expert_ui" value="expert_ui" />
+          <button id="load">Load Queue</button>
+        </div>
+        <div class="progress"><div class="bar" id="expBar"></div></div>
+      </div>
+      <div id="pair" class="card" style="display:none">
+        <div class="row"><span class="pill">Goal: <span id="goal"></span></span></div>
+        <div class="grid">
+          <div>
+            <div><strong>A Subject</strong></div>
+            <div id="aSubject" class="muted"></div>
+            <div style="white-space:pre-wrap; max-height:220px; overflow:auto" id="aBody"></div>
+            <button id="pickA">Pick A</button>
+          </div>
+          <div>
+            <div><strong>B Subject</strong></div>
+            <div id="bSubject" class="muted"></div>
+            <div style="white-space:pre-wrap; max-height:220px; overflow:auto" id="bBody"></div>
+            <button id="pickB">Pick B</button>
+          </div>
+        </div>
+        <div class="row"><button class="ghost" id="abstain">Abstain</button></div>
+      </div>
+    </div>
+    <script src="/util.js"></script>
+    <script src="/compare.js"></script>
+  </body>
+  </html>

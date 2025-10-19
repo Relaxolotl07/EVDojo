@@ -4,8 +4,7 @@ import React from 'react';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body suppressHydrationWarning data-gramm="false">{children}</body>
     </html>
   );
 }
-

@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+try:
+    from starlette.middleware.proxy_headers import ProxyHeadersMiddleware  # type: ignore
+except Exception:  # Older Starlette may not have this module
+    ProxyHeadersMiddleware = None  # type: ignore
 from fastapi.staticfiles import StaticFiles
 
 from .routers import items, variants, rank, compare, duel, rm, judge, expert, moderate, abuse, metrics, debug, topics, import_emails, expert_pairs, users, health
@@ -10,7 +13,8 @@ from .middleware import RequestIDMiddleware
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Comparative Coaching Platform (MVP)")
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+    if ProxyHeadersMiddleware is not None:
+        app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(
         CORSMiddleware,

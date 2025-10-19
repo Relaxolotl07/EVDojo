@@ -3,56 +3,64 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Comparative Coaching - Local Frontend</title>
+    <title>EVDojo — Expected Value Dojo</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
-    <div class="container">
-      <div id="debugBanner" class="banner hidden">DEBUG MODE ACTIVE · Tokens: "yes"→positive, "no"→negative · Flags: [POS], [NEG], [ASK], [HEDGE]</div>
-      <h1>Comparative Coaching (Local)</h1>
-      <div class="row">
-        <label>Goal</label>
-        <input id="goal" type="text" placeholder="ask clearly and respectfully" />
-      </div>
-      <div class="row">
-        <label>User</label>
-        <input id="userId" type="text" placeholder="u_local" />
-        <button id="startBtn">Start Session</button>
-        <span id="sessionInfo" class="muted"></span>
-      </div>
-      <div class="row">
-        <label>Continuous Mode</label>
-        <select id="mode">
-          <option value="off">Off</option>
-          <option value="light">Light</option>
-          <option value="standard" selected>Standard</option>
-          <option value="intense">Intense</option>
-        </select>
-      </div>
-
-      <div class="editor">
-        <div class="meter" id="meter">Neutral</div>
-        <textarea id="editor" rows="8" placeholder="Type here..."></textarea>
-        <div id="debugHint" class="muted hidden" style="margin-top:6px; font-size:12px;">[DEBUG] Yes/no demo is enabled.</div>
-        <div id="suggestion" class="suggestion hidden">
-          <span id="suggestionLabel"></span>
-          <button id="applySuggestion">Apply</button>
-          <button id="dismissSuggestion" class="ghost">Dismiss</button>
-        </div>
-        <div id="spans" class="spans"></div>
-      </div>
-
-      <div class="actions">
-        <button id="genVariants">Generate Variants</button>
-        <button id="refreshRank" class="ghost">Refresh Rank</button>
-      </div>
-
-      <div class="row">
-        <h3>Ranking</h3>
-        <div id="rank"></div>
-      </div>
+  <body class="celestial-bg">
+    <div class="sunband"></div>
+    <div class="stars">
+      <span style="left:5%; top:15%; animation-delay:.2s"></span>
+      <span style="left:25%; top:35%; animation-delay:1.1s"></span>
+      <span style="left:60%; top:10%; animation-delay:.7s"></span>
+      <span style="left:80%; top:50%; animation-delay:1.6s"></span>
+      <span style="left:40%; top:80%; animation-delay:.9s"></span>
     </div>
+    <div class="geo" style="left:-40px; top:140px;"></div>
+    <div class="geo circle" style="right:-60px; top:40px;"></div>
 
-    <script src="/app.js"></script>
+    <div class="container">
+      <section class="hero">
+        <div class="icon"></div>
+        <h1>EVDojo</h1>
+        <div class="subtitle">Expected Value Dojo — Celestial Coaching for Better Decisions</div>
+      </section>
+
+      <section class="feature-grid">
+        <div class="feature">
+          <div class="photo"></div>
+          <h4>Comparative Judging</h4>
+          <p>Small A/B edits duel. Experts pick winners with tags. The system learns a preference landscape.</p>
+        </div>
+        <div class="feature">
+          <div class="photo"></div>
+          <h4>Instant Feedback</h4>
+          <p>Streaming scorer provides low‑latency, calibrated hints as you type. Hysteresis prevents flicker.</p>
+        </div>
+        <div class="feature">
+          <div class="photo"></div>
+          <h4>Ethical Coaching</h4>
+          <p>Safety first. Clear asks. Fewer hedges. Respectful tone — guided by your topic’s fitness function.</p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <a class="card link gradient" href="/user.html">
+          <h3>Start Coaching</h3>
+          <div>Choose a topic, then get gentle, continuous edits while you write.</div>
+        </a>
+        <a class="card link gradient" href="/expert.html">
+          <h3>Coach / Expert</h3>
+          <div>Label A/B pairs quickly to train the topic fitness function.</div>
+        </a>
+        <a class="card link gradient" href="/interview.html">
+          <h3>Interview Analysis</h3>
+          <div>Watch a sample interview and see the action detector signal.</div>
+        </a>
+        <a class="card link gradient" href="/admin.html">
+          <h3>Admin</h3>
+          <div>Preview compare mode and debug metrics (no auth in debug).</div>
+        </a>
+      </section>
+    </div>
   </body>
   </html>

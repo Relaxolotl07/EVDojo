@@ -64,6 +64,7 @@ class Config:
             "customer-support",
             "networking",
             "ask-out",
+            "interview-analysis",
         ]
     )
 
