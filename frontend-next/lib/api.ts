@@ -1,7 +1,8 @@
 // Default to Next.js rewrite proxy at /api; can be overridden with NEXT_PUBLIC_API_BASE
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api";
 
-async function j<T>(res: Response): Promise<T> {
+async function j<T>(resPromise: Promise<Response>): Promise<T> {
+  const res = await resPromise;
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
