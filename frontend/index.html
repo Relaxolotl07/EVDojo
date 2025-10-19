@@ -63,20 +63,90 @@
       </header>
 
       <section class="desc">
-        <h2>Algorithm & Methodology</h2>
+        <style>
+          .desc blockquote{ margin:10px 0; padding:10px 12px; border-left:3px solid var(--border); background:rgba(255,255,255,0.03); border-radius:8px }
+          .desc .math{ display:block; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:#0e131c; overflow:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px }
+          /* Make the specific inspiration link less saturated */
+          .subtle-link{ color: var(--muted); text-decoration: underline; text-underline-offset: 2px }
+          .subtle-link:hover{ color: var(--text); text-decoration-color: var(--accent) }
+        </style>
+        <h2>Inspiration</h2>
         <p>
-          Placeholder: Briefly describe how the system collects A/B judgments, models preferences,
-          and delivers real-time coaching signals using lightweight on-device analysis and calibrated
-          thresholds. Outline data flow, privacy stance, and the learning loop here.
+          I was initially inspired by an odd post with a surprisingly insightful conclusion: Aella's
+          <a class="subtle-link" href="https://substack.com/home/post/p-174306552" target="_blank" rel="noreferrer">“The Vision of Slutcon”</a>.
+          If you can make it through the vulgarities, it talks about an interesting, and often underrepresented, issue:
         </p>
+        <blockquote>
+          <em>
+            “It’s insane we don’t have rapid feedback for this already! If you’re learning piano, you immediately hear when you
+            press a wrong key; … <strong>You experiment, adjust, until you figure out how to get closer to your goal.</strong>
+            But when it comes to being attractive to women, men are collectively out of luck; you get feedback sometimes … if a woman
+            says yes to you asking her on a date. But most of the time your behavior is causing concrete, visceral impacts … they will never
+            tell you about. <strong>It’s like trying to learn how to play a piano with earplugs in. All your moves fall into some great void.</strong>
+            Nobody else is doing this. Someone should do it. I think it would be good for the world.”
+          </em>
+        </blockquote>
+        <p>
+          When I read this, I thought: “Wow, that’s a great point!” Outside of relationships, many things in life don’t always have
+          unambiguous feedback, and the beauty of tech should help bridge this gap.
+        </p>
+        <br />
+        <p>
+          This is where <strong>EV Dojo</strong> comes in. We want dojos — training arenas where we can fail and improve — so we can hone the
+          expected value of our skills where a feedback loop may not exist otherwise.
+        </p>
+        <br />
+
+        <h2>The Math and The Model</h2>
+        <p>
+          We already have a useful way of solving the problem of a lack of clear feedback: coaches. Experts in a specific topic are
+          great for giving insightful comments, but they tend to be costly and too individualized to scale to a wider public.
+        </p>
+        <br />
+        <p>
+          We can, however, leverage the implicit knowledge that experts and coaches have to create our own mini‑judges for each topic
+          through a particular system. Since our goal is to have a generalized way to find these functions for each topic and let people
+          interact with them in real time, we need a way for experts to collaboratively work together to train a function to
+          approximate their decision‑making.
+        </p>
+        <br />
+        <p>
+          This is where the Bradley‑Terry (BT) pairwise preference model comes into play. If we have two choices, i and j in some set D,
+          and we want to find their approximate ranking for all elements in D, we can optimize their individual state functions s<sub>i</sub>
+          by comparing the expected result of BT to our crowdsourced preferences.
+        </p>
+        <br />
+        <p>(we also scale our function by each rater’s “trust value” to make it more robust)</p>
+        <br />
+        <p>
+          With these s<sub>i</sub> scores for each input, we then turn each score into a probability. Roughly, this equates to “the input i is
+          good roughly p(i) percent of the time,” which means we can take the top and the bottom of all of our possible inputs as the
+          “ticks” that are the most important for feedback.
+        </p>
+        <br />
+        <p>To turn a score into a probability, we use Platt scaling.</p>
+        <br />
+        <p>
+          Now that we have learned “value mini‑judgers,” we can use them to evaluate people on their topics in real time. To do this, we use a
+          classification algorithm (unique to the modality — video, audio, text, etc.) to estimate the probability that a certain input is
+          being exhibited, and then multiply that confidence by our internal probability to alert the user when we are confident they are
+          doing something notably good or bad.
+        </p>
+        <br />
+        <p>
+          To further improve robustness, we model the brain’s neuron‑action potentials: an event requires persistence (consecutive inputs
+          above threshold) and hysteresis (after firing, thresholds adjust slightly) so users aren’t spammed when signals hover around a
+          boundary.
+        </p>
+        <br />
       </section>
 
       <section class="list">
         <div class="item">
           <div>
-            <h3><a href="/user.html">Start Coaching</a></h3>
-            <div class="item-sub">Short explainer placeholder about this section.</div>
-            <p>Choose a topic, then get gentle, continuous edits while you write.</p>
+            <h3><a href="/user.html">Writing Coach</a></h3>
+            <div class="item-sub">Get immediate writing feedback as you write.</div>
+            <p>Choose a writing topic, then receive continuous edits while you write.</p>
           </div>
           <div class="media-ph">
             <!-- Put your image at frontend/images/start.jpg (or update the src path) -->
@@ -90,17 +160,23 @@
             <img src="/images/expert.jpg" alt="Expert labeling preview" onerror="this.style.display='none'" />
           </div>
           <div>
-            <h3><a href="/expert.html">Coach / Expert</a></h3>
-            <div class="item-sub">Short explainer placeholder about expert labeling.</div>
-            <p>Label A/B pairs quickly to train the topic fitness function.</p>
+            <h3><a href="/expert.html">Expert A/B Labeling</a></h3>
+            <div class="item-sub">Use your skills as an expert to rank A/B pairs and provide feedback.</div>
+            <p>Label A/B pairs quickly to train the topic fitness function. This is where we see how inputs get transformed
+              into scores behind the scenes. These scores are then used to provide feedback and improve the model, eventually picking 
+              the good/bad input criteria that is used in both the writing coach and interview analysis tools.
+            </p>
           </div>
         </div>
         <hr class="divider" />
         <div class="item">
           <div>
             <h3><a href="/interview.html">Interview Analysis</a></h3>
-            <div class="item-sub">Short explainer placeholder about interview signals.</div>
-            <p>Practice with live feedback on smiles, nods, and other cues.</p>
+            <div class="item-sub">Get Live Video response feedback for professionalism.</div>
+            <p>Practice with live feedback on smiles, nods, and other cues. This input-agnostic system uses a classification
+              algorithm to get inputs from your live video feed, then picks the most relevant cues from our A/B expert-trained
+              model to give you real-time feedback on your interview presence.
+            </p>
           </div>
           <div class="media-ph">
             <!-- Put your image at frontend/images/interview.jpg (or update the src path) -->
@@ -114,9 +190,9 @@
             <img src="/images/admin.jpg" alt="Admin preview" onerror="this.style.display='none'" />
           </div>
           <div>
-            <h3><a href="/admin.html">Admin</a></h3>
-            <div class="item-sub">Short explainer placeholder about admin features.</div>
-            <p>Preview compare mode and debug metrics (no auth in debug).</p>
+            <h3><a href="/admin.html">Admin & Debugging</a></h3>
+            <div class="item-sub">Access advanced features for managing and troubleshooting the system.</div>
+            <p>Preview compare mode and debug metrics (no auth in debug). This is not fleshed out in the current version.</p>
           </div>
         </div>
       </section>
