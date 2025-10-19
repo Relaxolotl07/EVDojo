@@ -1,117 +1,85 @@
-# Expert-in-the-Loop Comparative Coaching Platform (MVP)
+# EVDojo — Expert‑in‑the‑Loop Comparative Coaching (MVP)
 
-This repo contains a FastAPI backend implementing the core MVP described in the build spec:
-- Modality adapter (Text MVP)
-- Variant generator (3 small interpretable edits)
-- Comparative judging pipeline and BT ranking
-- Dueling bandit (Thompson sampling-style) for next duel
-- Simple reward model (linear pairwise) with reason-tag head
-- Judge orchestration (RM → LLM stub → expert escalation)
-- Safety guardrails and PII redaction (basic)
-- Expert console endpoints (queue/label) and abuse reporting
-- Streaming scorer endpoint with calibration, hysteresis, and metrics
+EVDojo is a minimal, self‑contained demo that you can run locally. It includes:
 
-## Structure
-- `backend/app/main.py` FastAPI app and router wiring
-- `backend/app/routers/*.py` REST endpoints
-- `backend/app/bt.py` Rater-aware Bradley–Terry (online SGD)
-- `backend/app/bandit.py` Next duel selection
-- `backend/app/rm.py` Simple text RM with pairwise training
-- `backend/app/variants.py` Text variants
-- `backend/app/adapters/text_adapter.py` Normalization + features + redaction
-- `backend/app/moderation.py` Safety checks
-- `backend/app/storage.py` In-memory store (swap for Postgres later)
-- `tests/` Unit tests for BT, bandit, RM
+- A FastAPI backend with A/B judging, a simple reward model, and utilities for items/variants.
+- A dark‑mode static frontend with animated backgrounds, an expert labeling flow, a writing coach demo, and a webcam‑based interview analysis page.
+
+The backend serves the static site from `frontend/` at the root path (`/`). No build step required.
+
+## Repo Structure
+
+Backend (FastAPI)
+- `backend/app/main.py` — App factory, CORS, request ID, and static mount (`/` → `frontend/`).
+- `backend/app/routers/*.py` — REST endpoints (items, variants, compare, rank, bandit, rm, judge, topics, etc.).
+- `backend/app/bt.py` — Bradley–Terry online ranking.  `backend/app/bandit.py` — next duel selection.
+- `backend/app/rm.py` — simple text reward model; `backend/app/variants.py` — variant generator.
+- `backend/app/adapters/text_adapter.py` — normalization, features, redaction.
+- `backend/app/moderation.py` — basic safety; `backend/app/storage.py` — in‑memory store.
+- `tests/` — unit tests for BT, bandit, and RM.
+
+Frontend (static)
+- `frontend/index.html` — minimal landing with a large center logo, a short methodology blurb, and vertically stacked sections with dividers and image placeholders.
+- `frontend/user.html` — continuous feedback writing demo (editor UI).  `frontend/user-feedback.html` — supporting feedback view.
+- `frontend/expert.html` — expert entry; for testing it routes to `label.html` (scripts disabled).
+- `frontend/label.html` — A/B email compare: two large, selectable cards, hover/selection styling, rationale input, Continue cycles through example pairs, and a small “Thanks” toast.
+- `frontend/interview.html` — interview analysis: webcam video with an overlaid mask (MediaPipe Face Landmarker via CDN). Detects nod, smile, open mouth, frown, head shake, looking away, blink, brow, and posture with short coaching toasts.
+- `frontend/styles.css` — global dark theme + animated radial gradient, shapes, and star “constellation”.
+- `frontend/bg.js` — performant moving stars/lines (constellation) with adaptive throttling.
+- `frontend/logo.svg`, `frontend/icon.svg` — branding and SVG favicon.
 
 ## Quick Start
-1. Create a virtualenv and install deps:
-   - `pip install fastapi uvicorn pydantic`
-2. Run the server:
-   - `uvicorn backend.app.main:app --reload`
-3. Open docs at `/docs`.
-4. Local frontend is served at `/` (static HTML/JS).
 
-## Minimal Flow
-1. Create item
-   - `POST /items` with `{ user_id, modality: "text", content: { text }, context: { goal, ... } }`
-2. Generate variants
-   - `POST /variants` with `{ item_id }`
-3. Rank
-   - `GET /rank?item_id=...`
-4. Next duel
-   - `GET /next_duel?item_id=...`
-5. Compare
-   - `POST /compare` with `{ item_id, a_id, b_id, winner_id|null, judge_type, rater_id? }`
-6. Judge orchestration (RM first)
-   - `POST /judge` with `{ a: {features|compact_features}, b: {...}, context: {...} }`
-7. Streaming scorer (text MVP)
-   - `POST /rm/stream/score` with `{ modality, context, snippet, cursor?, rm_version?, user_id?, item_id?, mode? }`
-   - Returns `{ p_win, confidence, state, tags, spans, suggestion, rm_version }`
-   - Metrics: `GET /rm/metrics/stream`; Calibration meta: `GET /rm/calibration?rm_version=v1`
-   - Apply suggestion to create a Variant: `POST /variants/apply_suggestion?item_id=...&diff_type=...&content_text=...`
+1) Create a virtualenv and install minimal deps:
 
-## Local Frontend
-- Path: `/` serves `frontend/index.html`
-- Features:
-  - Start session (creates Item), type in editor
-  - Continuous scoring (debounced) with meter chip and one suggestion at a time
-  - Apply suggestion (creates a new Variant) and refresh rank
-  - Generate variants and view ranking
+```
+pip install fastapi uvicorn pydantic
+```
 
-## Deploying with Cloudflare (evdojo.com)
+2) Run the server (serves UI and API):
 
-Recommended architecture
-- Frontend (Next.js): Cloudflare Pages at `evdojo.com` (or `app.evdojo.com`).
-- Backend (FastAPI): any container host (e.g., Fly.io, Railway, Render, VPS) exposed as `api.evdojo.com` and proxied by Cloudflare (orange cloud).
-- Optional: Cloudflare Worker proxy to expose `/api/*` on the root domain.
+```
+uvicorn backend.app.main:app --reload
+```
 
-Backend hardening in this repo
-- Proxy headers trusted: real client IP via `CF-Connecting-IP` is honored.
-- Request ID middleware adds `X-Request-ID` for tracing.
-- CORS is env-driven via `CORS_ALLOW_ORIGINS` (defaults include `https://evdojo.com`).
-- Health endpoint: `GET /healthz`.
-- Dockerfile: `backend/Dockerfile` exposes port 8080.
+3) Open the site at http://127.0.0.1:8000/
 
-Steps
-1) Buy domain and add to Cloudflare
-   - Add `evdojo.com` to Cloudflare, update registrar nameservers.
-2) Backend origin
-   - Build and run container: `docker build -t evdojo-backend ./backend && docker run -p 8080:8080 evdojo-backend` (or deploy to Fly/Railway/Render).
-   - Ensure health: visit `http://<origin-host>:8080/healthz`.
-   - Set environment:
-     - `CORS_ALLOW_ORIGINS=https://evdojo.com,https://www.evdojo.com,https://app.evdojo.com`
-     - Optional: `STREAMING_ENABLED=true`, `DEBUG_DEMO=false` for prod.
-3) Cloudflare DNS
-   - Create `A`/`AAAA` or `CNAME` for `api.evdojo.com` pointing to your origin host. Enable proxy (orange cloud).
-   - SSL/TLS → Full (Strict). Install a valid cert on origin.
-4) Frontend (Cloudflare Pages)
-   - Push `frontend-next` to a repo. In Cloudflare Pages, “Create project” → connect repo → set build command `npm run build` and output directory `.next` will be auto-handled by Pages (or follow Next-on-Pages docs).
-   - In Pages project Settings → Environment variables:
-     - `NEXT_PUBLIC_API_BASE=https://api.evdojo.com` (or use Worker proxy below and leave unset to use `/api`).
-5) Optional: Worker proxy `/api/*`
-   - In `cloudflare/wrangler.toml`, set `ORIGIN` to your backend origin (`https://api.evdojo.com`).
-   - Deploy: `cd cloudflare && npx wrangler deploy`.
-   - Add a route: `evdojo.com/api/*` on your zone.
-   - Now the Next.js app can use relative `/api` (default in this repo), and Cloudflare will forward to the backend.
-6) WAF/Rate limiting
-   - Add a Rate Limiting rule on `/rm/stream/score` (e.g., 60 req/min per IP) and bot protections.
+4) API docs at http://127.0.0.1:8000/docs
 
 Notes
-- If you prefer, host the backend on Cloudflare Tunnel instead of public IP: run `cloudflared tunnel` from your origin and bind `api.evdojo.com`.
-- Cloudflare D1/R2 are not used in this MVP; use Postgres/Supabase for DB and optionally R2 for file storage later.
-- For Pages SSR, consider `@cloudflare/next-on-pages` for advanced Next.js features.
+- Static site is mounted from `frontend/`. Favicon is `frontend/icon.svg`.
+- For the interview page, your browser will prompt for camera access and needs WASM support.
 
+## Frontend Pages
 
-Notes:
-- In-memory storage for MVP; replace with Postgres models per spec when ready.
-- RM and LLM are stubs; RM is trainable online via `/rm/train`.
-- Safety check blocks goal keywords: harassment, deception, impersonation, harm.
+- Landing (`/`) — Large centered logo; “Algorithm & Methodology” placeholder; sections for “Start Coaching”, “Coach / Expert”, “Interview Analysis”, and “Admin” with dividers and image placeholders. Content is constrained to the middle third for readability.
+- Writing Coach (`/user.html`) — Dark theme editor with a meter and suggestions.
+- Expert Labeling (`/expert.html` → `/label.html`) — Two side‑by‑side email cards; click or keyboard (Enter/Space) to select; optional rationale input; Continue cycles through example pairs; toast thanks the user.
+- Interview Analysis (`/interview.html`) — Video stream with absolute canvas overlay (mask) and a visible rounded frame border. Events trigger coaching toasts. Transparency and point size are configurable via `CONFIG.MASK_ALPHA` and `CONFIG.POINT_RADIUS`.
+
+## Minimal API Flow (Text MVP)
+
+1. Create item — `POST /items`
+2. Generate variants — `POST /variants`
+3. Rank — `GET /rank?item_id=...`
+4. Next duel — `GET /next_duel?item_id=...`
+5. Compare — `POST /compare`
+6. Judge orchestration — `POST /judge`
+7. Streaming scorer — `POST /rm/stream/score` (with calibration/metrics endpoints)
+
+## Background & Performance
+
+- Animated background uses CSS gradients + a canvas constellation. It throttles during scroll/low FPS and honors `prefers-reduced-motion`.
+- Interview page uses MediaPipe Tasks from a CDN; all processing is in‑browser (no video leaves the device).
 
 ## Tests
-- `pytest -q` (requires `pytest`)
 
-## Next Steps
-- Persist to Postgres/Supabase with schema in spec
-- Add expert console UI (Next.js) and dashboards
-- Integrate small sentence embedder for RM features
-- Implement real LLM judging with strict prompts and safety filters
+```
+pytest -q
+```
+
+## Implementation Notes
+
+- In‑memory storage for the MVP; swap for Postgres/Supabase when ready.
+- Reward model and judging are simple stubs for demonstration; improve prompts/models and safety when moving beyond local demos.
+
