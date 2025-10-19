@@ -34,11 +34,12 @@
       .divider{ border:0; border-top:1px solid var(--border); width:50vw; max-width:960px; margin: 10px auto; opacity:.9 }
 
       @media (max-width: 820px){
-        .item{ grid-template-columns: 1fr; }
-        /* On small screens force text first, image second for all items */
+        /* Stack all items: text first, image below */
+        .item, .item.media-first{ grid-template-columns: 1fr !important; }
         .item > .media-ph{ order: 2; }
         .item > :not(.media-ph){ order: 1; }
-        .media-ph{ height:140px }
+        /* Make images larger so they aren't cramped */
+        .media-ph{ height:220px }
       }
     </style>
   </head>
