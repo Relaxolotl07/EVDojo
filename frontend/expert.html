@@ -6,12 +6,24 @@
     <title>EVDojo — Expert Labeling</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="celestial-bg">
+  <body>
+    <div class="bg-decor">
+      <canvas class="bg-constellation"></canvas>
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+      <div class="blob b4"></div>
+      <div class="bg-shape square s1"></div>
+      <div class="bg-shape circle s2"></div>
+      <div class="bg-shape tri s3"></div>
+      <div class="bg-shape square s4"></div>
+      <div class="bg-shape circle s5"></div>
+    </div>
     <div class="container">
-      <div class="navbar">
-        <div class="brand"><div class="logo"></div><h1>EVDojo</h1></div>
-        <div class="navlinks"><a class="link" href="/">Home</a></div>
-      </div>
+      <header class="site-header">
+        <div class="brand"><img class="logo" src="/logo.svg" alt="EVDojo logo" /><div class="title">EVDojo</div></div>
+        <nav class="nav"><a href="/">Home</a><a href="/user.html" class="secondary">Write</a><a href="/interview.html" class="secondary">Interview</a></nav>
+      </header>
       <div class="card">
         <div class="row">
           <label>Topic</label>
@@ -40,8 +52,10 @@
         </div>
         <div class="row"><button class="ghost" id="abstain">Abstain</button></div>
       </div>
+      <footer class="site-footer">Labeling interface — expert mode.</footer>
     </div>
     <script src="/util.js"></script>
     <script src="/compare.js"></script>
   </body>
-  </html>
+  <script src="/bg.js"></script>
+</html>

@@ -1,52 +1,399 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EVDojo — Interview Analysis</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <!-- Emscripten shim for MediaPipe WASM: avoid Module.arguments aborts -->
-    <script>window.arguments_ = window.arguments_ || []; window.Module = window.Module || { arguments_: [] };</script>
-    <!-- MediaPipe FaceMesh for robust face/landmark detection (loaded from CDN) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <style>
-      .video-wrap { position: relative; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
-      video { width: 100%; display: block; background: #000; }
-      canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
-      .indicator { position: absolute; left: 12px; top: 12px; background: var(--chip-bg); border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; font-weight: 700; }
-      .indicator.positive { background: #fff7e6; border-color: #ffd591; }
-      .legend { margin-top: 10px; color: var(--muted); font-size: 14px; }
-      .debugbox { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
-    </style>
-  </head>
-  <body class="celestial-bg">
-    <div class="container">
-      <div class="navbar">
-        <div class="brand"><div class="logo"></div><h1>EVDojo</h1></div>
-        <div class="navlinks"><a class="link" href="/">Home</a></div>
-      </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interview Window</title>
+  <style>
+    :root { --bg: #0f1115; --fg: #e6e6e6; --muted:#9aa3ad; --accent:#b76e79; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial; background: var(--bg); color: var(--fg); }
 
-      <div class="card">
-        <h3>Topic: interview-analysis</h3>
-        <div class="legend">This demo detects a simple nod action and shows smile/mouth‑open indicators from a sample video (or your webcam). Toggle debug to see live values.</div>
-      </div>
+    .wrap { display:grid; grid-template-columns: 1fr; gap:12px; padding: 16px; max-width: 720px; margin: 0 auto; }
+    .stage { position: relative; border-radius: 18px; overflow: hidden; background:#0b0d12; border:1px solid #1b1f2a; }
+    video { width: 100%; height: auto; display:block; background: #000; }
+    /* Canvas overlays video so mask draws on top */
+    canvas#overlay { position:absolute; inset:0; width:100%; height:100%; display:block; pointer-events:none; }
+    /* Visible border overlay on top of stream */
+    .frame-border { position:absolute; inset:0; border:2px solid rgba(230,230,230,0.25); border-radius:18px; pointer-events:none; box-shadow: inset 0 0 0 1px rgba(183,110,121,0.25); z-index:3; }
 
-      <div class="video-wrap">
-        <div id="indicator" class="indicator">Waiting…</div>
-        <video id="vid" playsinline muted autoplay loop></video>
-        <canvas id="overlay" width="640" height="360"></canvas>
-      </div>
+    /* Toast notifications over the window */
+    .toasts { position: absolute; right: 12px; top: 12px; display:flex; flex-direction:column; gap:8px; z-index: 20; }
+    .toast { pointer-events:auto; background:#0e131c; border:1px solid #2a3142; color:var(--fg); padding:10px 12px; border-radius:10px; font-size:13px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); opacity: 0; transform: translateY(-6px); transition: all .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.nod { border-color:#1e5b3a; background:#0c1712; }
+    .toast.smile { border-color:#5a2a6b; background:#22122b; }
+    .toast.mouth { border-color:#3a435a; background:#121622; }
+    .toast.frown { border-color:#5b2a2a; background:#241616; }
+    .toast.look { border-color:#2d4c7c; background:#111a27; }
+    .toast.blink { border-color:#3a2d7c; background:#161127; }
+    .toast.shake { border-color:#7c6a2d; background:#272111; }
+    .toast.brow { border-color:#2d7c5e; background:#11271e; }
+    .toast.posture { border-color:#7c2d5d; background:#271121; }
 
-      <div class="row" style="margin-top:12px">
-        <button id="useSample">Use Sample Video</button>
-        <button class="ghost" id="useWebcam">Use Webcam</button>
-        <button class="ghost" id="toggleDebug">Toggle Debug</button>
-      </div>
-      <div id="debugPanel" class="debugbox hidden"></div>
-    </div>
+    /* Questions section */
+    .questions { margin-top: 8px; border:1px solid #1b1f2a; border-radius: 12px; background:#0b0d12; padding: 14px; }
+    .questions h3 { margin: 0 0 8px; font-size: 16px; }
+    .questions ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.6; }
 
-    <script src="/interview.js"></script>
-  </body>
-  </html>
+    .subtle { color: var(--muted); font-size: 12px; text-align:center; }
+
+    /* Decorative background: vibrant circular gradient + shapes + stars */
+    .bg-decor{position:fixed;inset:0;z-index:0;pointer-events:none}
+    body > .bg-decor{z-index:0}
+    .wrap{position:relative;z-index:1}
+    .bg-decor::before{content:"";position:absolute;inset:-10%;
+      background:
+        radial-gradient(60rem 60rem at 20% -10%, rgba(255,91,121,0.25), transparent 55%),
+        radial-gradient(45rem 45rem at 85% 120%, rgba(83,91,255,0.22), transparent 55%),
+        radial-gradient(32rem 32rem at 60% 40%, rgba(6,182,212,0.18), transparent 60%),
+        radial-gradient(28rem 28rem at 10% 80%, rgba(255,184,108,0.14), transparent 65%);
+      filter: saturate(1.1) hue-rotate(var(--bg-hue, -6deg));
+      animation: bgPulse 18s ease-in-out infinite alternate;
+    }
+    .bg-decor::after{content:"";position:absolute;inset:0;opacity:.65;mix-blend-mode:screen;
+      background-image:
+        radial-gradient(2px 2px at 12% 16%, rgba(255,255,255,0.55) 50%, transparent 52%),
+        radial-gradient(1.5px 1.5px at 28% 36%, rgba(255,255,255,0.48) 50%, transparent 52%),
+        radial-gradient(1.5px 1.5px at 42% 20%, rgba(255,255,255,0.5) 50%, transparent 52%),
+        radial-gradient(1.8px 1.8px at 64% 26%, rgba(255,255,255,0.5) 50%, transparent 52%),
+        radial-gradient(1.6px 1.6px at 80% 12%, rgba(255,255,255,0.45) 50%, transparent 52%),
+        radial-gradient(1.4px 1.4px at 92% 32%, rgba(255,255,255,0.45) 50%, transparent 52%),
+        radial-gradient(2px 2px at 14% 74%, rgba(255,255,255,0.55) 50%, transparent 52%),
+        radial-gradient(1.7px 1.7px at 32% 86%, rgba(255,255,255,0.48) 50%, transparent 52%),
+        radial-gradient(1.2px 1.2px at 48% 88%, rgba(255,255,255,0.42) 50%, transparent 52%),
+        radial-gradient(1.6px 1.6px at 70% 80%, rgba(255,255,255,0.48) 50%, transparent 52%),
+        radial-gradient(1.3px 1.3px at 88% 66%, rgba(255,255,255,0.42) 50%, transparent 52%);
+      background-repeat:no-repeat;
+    }
+    .bg-shape{position:absolute;opacity:.18;filter:blur(.2px)}
+    .bg-shape.square{width:80px;height:80px;border-radius:12px;transform:rotate(24deg);background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.06)}
+    .bg-shape.circle{width:90px;height:90px;border-radius:50%;background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.03));border:1px solid rgba(255,255,255,0.06)}
+    .bg-shape.tri{width:0;height:0;border-left:46px solid transparent;border-right:46px solid transparent;border-bottom:80px solid rgba(255,255,255,0.08);filter:drop-shadow(0 8px 24px rgba(0,0,0,0.2))}
+    .bg-shape.s1{top:12%;left:6%}
+    .bg-shape.s2{top:68%;left:12%}
+    .bg-shape.s3{top:18%;right:8%}
+    .bg-shape.s4{bottom:10%;right:14%}
+    .bg-shape.s5{top:44%;left:48%}
+
+    /* Animated gradient blobs */
+    .blob{position:absolute;border-radius:50%;filter:blur(34px);mix-blend-mode:screen;opacity:.5}
+    .blob.b1{width:520px;height:520px;left:-120px;top:-80px;background:radial-gradient(circle at 30% 30%, rgba(255,120,150,0.5), rgba(255,120,150,0.0) 60%);animation: drift1 34s ease-in-out infinite}
+    .blob.b2{width:420px;height:420px;right:-120px;bottom:-120px;background:radial-gradient(circle at 70% 70%, rgba(86,95,255,0.38), rgba(86,95,255,0.0) 60%);animation: drift2 38s ease-in-out infinite}
+    .blob.b3{width:380px;height:380px;left:40%;top:30%;background:radial-gradient(circle at 50% 50%, rgba(6,182,212,0.28), rgba(6,182,212,0.0) 60%);animation: drift3 46s ease-in-out infinite}
+    .blob.b4{width:300px;height:300px;left:10%;bottom:8%;background:radial-gradient(circle at 40% 60%, rgba(255,196,120,0.26), rgba(255,196,120,0.0) 60%);animation: drift4 40s ease-in-out infinite}
+
+    @keyframes bgPulse{from{--bg-hue:-6deg;transform:scale(1)} 50%{--bg-hue:6deg;transform:scale(1.02)} to{--bg-hue:12deg;transform:scale(1.04)}}
+    @keyframes drift1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(8vw,4vh) scale(1.05)}100%{transform:translate(0,0) scale(1)}}
+    @keyframes drift2{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-6vw,6vh) scale(0.95)}100%{transform:translate(0,0) scale(1)}}
+    @keyframes drift3{0%{transform:translate(0,0) scale(1)}50%{transform:translate(3vw,-4vh) scale(1.08)}100%{transform:translate(0,0) scale(1)}}
+    @keyframes drift4{0%{transform:translate(0,0) scale(1)}50%{transform:translate(2vw,5vh) scale(0.98)}100%{transform:translate(0,0) scale(1)}}
+  </style>
+</head>
+<body>
+  <div class="bg-decor">
+    <canvas class="bg-constellation"></canvas>
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="blob b4"></div>
+    <div class="bg-shape square s1"></div>
+    <div class="bg-shape circle s2"></div>
+    <div class="bg-shape tri s3"></div>
+    <div class="bg-shape square s4"></div>
+    <div class="bg-shape circle s5"></div>
+  </div>
+
+  <main class="wrap">
+    <section class="stage" id="stage">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div class="frame-border"></div>
+      <div id="toasts" class="toasts"></div>
+    </section>
+
+    <section class="questions">
+      <h3>Practice Interview Questions</h3>
+      <ul>
+        <li>Tell me about yourself.</li>
+        <li>Why are you interested in this role/company?</li>
+        <li>Walk me through a challenging problem you solved.</li>
+        <li>What are your strengths and areas for growth?</li>
+        <li>Describe a time you led a project or initiative.</li>
+        <li>How do you handle tight deadlines or ambiguity?</li>
+        <li>Tell me about a time you received feedback. What did you do?</li>
+        <li>What’s a project you’re most proud of and why?</li>
+        <li>How do you prioritize tasks across multiple commitments?</li>
+        <li>Do you have any questions for us?</li>
+      </ul>
+    </section>
+    <div class="subtle">No video leaves your device. All processing happens in your browser.</div>
+  </main>
+
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
+
+    const els = {
+      video: document.getElementById('video'),
+      canvas: document.getElementById('overlay'),
+      stage: document.getElementById('stage'),
+      toasts: document.getElementById('toasts'),
+    };
+
+    const CONFIG = {
+      DRAW: true,
+      MASK_ALPHA: 0.28,
+      POINT_RADIUS: 2.0,
+      MIN_GAP_MS: 800,
+      // Smile (positive curve) and Frown (negative curve)
+      SMILE_CURVE_T: 0.030,
+      SMILE_HYST: 0.006,
+      FROWN_CURVE_T: 0.028,
+      FROWN_HYST: 0.006,
+      // Mouth open
+      MOUTH_OPEN_THRESH: 0.18,
+      MOUTH_HYST: 0.03,
+      // Nod
+      NOD_DOWN_T: 0.06,    // signal below this = head down
+      NOD_UP_T: 0.03,      // back above this = head up
+      MAX_NOD_MS: 700,
+      // Head shake (yaw left-right pattern)
+      SHAKE_YAW_T: 0.045,
+      MAX_SHAKE_MS: 900,
+      // Looking away (sustained yaw)
+      LOOK_YAW_T: 0.06,
+      LOOK_AWAY_MS: 1200,
+      LOOK_COOLDOWN_MS: 4000,
+      // Blink EAR
+      BLINK_EAR_T: 0.19,
+      BLINK_MIN_GAP_MS: 900,
+      // Brow
+      BROW_RAISE_T: 0.045,
+      BROW_FURROW_T: 0.020,
+      BROW_MIN_GAP_MS: 2000,
+      // Posture (relative face scale to baseline)
+      LEAN_IN_RATIO: 1.15,
+      LEAN_OUT_RATIO: 0.85,
+      POSTURE_COOLDOWN_MS: 5000,
+    };
+
+    let faceLandmarker = null;
+    let stream = null;
+    let animId = 0;
+
+    const Smile = { on:false, last:0, count:0 };
+    const Frown = { on:false, last:0, count:0 };
+    const Mouth = { on:false, last:0, count:0 };
+    const Nod = { state:'idle', tDown:0, last:0, count:0 };
+    const Shake = { state:'idle', tSide:0, last:0, count:0 };
+    const Look = { on:false, since:0, last:0 };
+    const Blink = { on:false, last:0 };
+    const Brow = { up:false, tense:false, last:0 };
+    const Posture = { base:null, last:0 };
+    const Smooth = makeSmoother(0.15);
+
+    function notify(text, kind) {
+      const node = document.createElement('div');
+      node.className = `toast ${kind||''}`.trim();
+      node.textContent = text;
+      els.toasts.appendChild(node);
+      // force style
+      requestAnimationFrame(()=> node.classList.add('show'));
+      setTimeout(()=>{
+        node.classList.remove('show');
+        setTimeout(()=> node.remove(), 220);
+      }, 1400);
+    }
+
+    function makeSmoother(alpha){
+      let has=false, v=0; return { reset(){ has=false; }, step(x){ if(!has){ v=x; has=true; return v; } v = v + alpha*(x - v); return v; } };
+    }
+
+    function sizeCanvas(){ const w = els.video.videoWidth, h = els.video.videoHeight; if(!w || !h) return; els.canvas.width = w; els.canvas.height = h; }
+    function drawLandmarks(ctx, lm){ ctx.save(); ctx.fillStyle = 'rgba(183,110,121,'+CONFIG.MASK_ALPHA+')'; for(const p of lm){ ctx.beginPath(); ctx.arc(p.x*els.canvas.width, p.y*els.canvas.height, CONFIG.POINT_RADIUS, 0, Math.PI*2); ctx.fill(); } ctx.restore(); }
+    function dist(a,b){ const dx=(a.x-b.x), dy=(a.y-b.y), dz=(a.z-b.z||0); return Math.hypot(dx,dy,dz); }
+    function bbox(lm){ let minX=1,minY=1,maxX=0,maxY=0; for(const p of lm){ if(!p) continue; if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; } return {minX,minY,maxX,maxY}; }
+
+    // Pitch proxy: nose vs eye-line vertical offset normalized by face height
+    function pitchSignal(lm){
+      const nose = lm[1]; // nose tip
+      const lEye = lm[33];
+      const rEye = lm[263];
+      if(!nose || !lEye || !rEye) return null;
+      const eyeY = (lEye.y + rEye.y) * 0.5;
+      const face = bbox(lm);
+      const faceH = Math.max(1e-6, face.maxY - face.minY);
+      // Positive when head goes down (nose y increases)
+      return (nose.y - eyeY) / faceH;
+    }
+
+    function updateNod(sig, t){
+      switch(Nod.state){
+        case 'idle':
+          if(sig > CONFIG.NOD_DOWN_T && (t - Nod.last) > CONFIG.MIN_GAP_MS){ Nod.state='down'; Nod.tDown = t; }
+          break;
+        case 'down':
+          if(sig < CONFIG.NOD_UP_T){
+            if(t - Nod.tDown <= CONFIG.MAX_NOD_MS){ Nod.count++; Nod.last = t; notify('Nice nod — subtle nods show active listening.', 'nod'); }
+            Nod.state = 'idle';
+          }
+          break;
+      }
+    }
+
+    function yawSignal(lm){
+      const nose = lm[1];
+      const lEye = lm[33];
+      const rEye = lm[263];
+      if(!nose || !lEye || !rEye) return 0;
+      const eyeX = (lEye.x + rEye.x) * 0.5;
+      const face = bbox(lm);
+      const faceW = Math.max(1e-6, face.maxX - face.minX);
+      return (nose.x - eyeX) / faceW; // left negative, right positive
+    }
+
+    function updateShakeYaw(yaw, t){
+      switch(Shake.state){
+        case 'idle':
+          if(Math.abs(yaw) > CONFIG.SHAKE_YAW_T && (t - Shake.last) > CONFIG.MIN_GAP_MS){
+            Shake.state = yaw < 0 ? 'left' : 'right';
+            Shake.tSide = t;
+          }
+          break;
+        case 'left':
+          if(yaw > CONFIG.SHAKE_YAW_T){
+            if(t - Shake.tSide <= CONFIG.MAX_SHAKE_MS){ Shake.count++; Shake.last = t; notify('Try to avoid “no” head shakes unless you intend to disagree.', 'shake'); }
+            Shake.state = 'idle';
+          }
+          break;
+        case 'right':
+          if(yaw < -CONFIG.SHAKE_YAW_T){
+            if(t - Shake.tSide <= CONFIG.MAX_SHAKE_MS){ Shake.count++; Shake.last = t; notify('Try to avoid “no” head shakes unless you intend to disagree.', 'shake'); }
+            Shake.state = 'idle';
+          }
+          break;
+      }
+    }
+
+    async function loadModel(){
+      const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm";
+      const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
+      const fileset = await FilesetResolver.forVisionTasks(WASM_BASE);
+      faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: MODEL_URL },
+        runningMode: 'VIDEO', numFaces: 1,
+        outputFaceBlendshapes: false, outputFacialTransformationMatrixes: false
+      });
+    }
+
+    async function startCamera(){
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      els.video.srcObject = stream; await els.video.play(); sizeCanvas();
+      window.addEventListener('resize', sizeCanvas);
+    }
+
+    function stopCamera(){ if(stream){ for(const t of stream.getTracks()) t.stop(); stream=null; } cancelAnimationFrame(animId); animId=0; }
+
+    let frames=0, lastTs=0;
+    function loop(){
+      animId = requestAnimationFrame(loop);
+      if(!faceLandmarker || !stream) return;
+      const now = performance.now();
+      const results = faceLandmarker.detectForVideo(els.video, now);
+      const ctx = els.canvas.getContext('2d');
+      ctx.clearRect(0,0,els.canvas.width,els.canvas.height);
+      if(results.faceLandmarks && results.faceLandmarks[0]){
+        const lm = results.faceLandmarks[0];
+        const sigRaw = pitchSignal(lm);
+        if(sigRaw != null){ const sig = Smooth.step(sigRaw); updateNod(sig, now); }
+
+        // Yaw-based cues: head shake, eye contact
+        const yaw = yawSignal(lm);
+        updateShakeYaw(yaw, now);
+        if(Math.abs(yaw) > CONFIG.LOOK_YAW_T){
+          if(!Look.on){ Look.on = true; Look.since = now; }
+          if((now - Look.since) > CONFIG.LOOK_AWAY_MS && (now - Look.last) > CONFIG.LOOK_COOLDOWN_MS){
+            Look.last = now; notify('Try to face the camera to maintain eye contact.', 'look');
+          }
+        } else if(Look.on) {
+          Look.on = false;
+        }
+
+        // Smile, Frown and Mouth Open
+        const box = bbox(lm); const faceW = Math.max(1e-6, box.maxX - box.minX); const faceH = Math.max(1e-6, box.maxY - box.minY);
+        const lipUp = lm[13], lipLow = lm[14], leftC = lm[61], rightC = lm[291];
+        if(lipUp && lipLow && leftC && rightC){
+          const mouthOpen = Math.abs(lipLow.y - lipUp.y) / faceH;
+          const cornerY = (leftC.y + rightC.y) * 0.5;
+          const midY = (lipUp.y + lipLow.y) * 0.5;
+          const curve = (midY - cornerY) / faceH; // + = smile upturned corners, - = frown
+          const moOn = mouthOpen > (CONFIG.MOUTH_OPEN_THRESH + (Mouth.on? -CONFIG.MOUTH_HYST : 0));
+          if(moOn && !Mouth.on && (now - Mouth.last) > CONFIG.MIN_GAP_MS){ Mouth.on = true; Mouth.last = now; Mouth.count++; notify('Mouth open — try resting lips together for a neutral look.', 'mouth'); }
+          if(!moOn && Mouth.on){ Mouth.on = false; }
+
+          const smOn = curve > (CONFIG.SMILE_CURVE_T + (Smile.on? -CONFIG.SMILE_HYST : 0));
+          if(smOn && !Smile.on && (now - Smile.last) > CONFIG.MIN_GAP_MS){ Smile.on = true; Smile.last = now; Smile.count++; notify('Good job smiling — friendly expressions build rapport.', 'smile'); }
+          if(!smOn && Smile.on){ Smile.on = false; }
+
+          const frOn = (-curve) > (CONFIG.FROWN_CURVE_T + (Frown.on? -CONFIG.FROWN_HYST : 0));
+          if(frOn && !Frown.on && (now - Frown.last) > CONFIG.MIN_GAP_MS){ Frown.on = true; Frown.last = now; Frown.count++; notify('You look tense — try a gentle smile to appear more open.', 'frown'); }
+          if(!frOn && Frown.on){ Frown.on = false; }
+        }
+
+        // Blink via eye aspect ratio (simple)
+        const lTop = lm[159], lBot = lm[145], lL = lm[33], lR = lm[133];
+        const rTop = lm[386], rBot = lm[374], rL = lm[362], rR = lm[263];
+        if(lTop && lBot && lL && lR && rTop && rBot && rL && rR){
+          const earL = (dist(lTop,lBot)) / (dist(lL,lR)+1e-6);
+          const earR = (dist(rTop,rBot)) / (dist(rL,rR)+1e-6);
+          const ear = (earL + earR) * 0.5;
+          const blinkOn = ear < CONFIG.BLINK_EAR_T;
+          if(blinkOn && !Blink.on && (now - Blink.last) > CONFIG.BLINK_MIN_GAP_MS){ Blink.on = true; Blink.last = now; notify('Natural blink — keep eyes relaxed and avoid staring.', 'blink'); }
+          if(!blinkOn && Blink.on){ Blink.on = false; }
+        }
+
+        // Brow raise / furrow (eyebrow to eye distance)
+        const lbrow = lm[105], rbrow = lm[334]; // upper brow points
+        const lEyeTop = lm[159], rEyeTop = lm[386];
+        if(lbrow && rbrow && lEyeTop && rEyeTop){
+          const d = ((Math.abs(lbrow.y - lEyeTop.y) + Math.abs(rbrow.y - rEyeTop.y)) * 0.5) / faceH;
+          const raise = d > CONFIG.BROW_RAISE_T;
+          const tense = d < CONFIG.BROW_FURROW_T;
+          if(raise && !Brow.up && (now - Brow.last) > CONFIG.BROW_MIN_GAP_MS){ Brow.up = true; Brow.tense = false; Brow.last = now; notify('Raised eyebrows — great for emphasizing key points.', 'brow'); }
+          if(tense && !Brow.tense && (now - Brow.last) > CONFIG.BROW_MIN_GAP_MS){ Brow.tense = true; Brow.up = false; Brow.last = now; notify('Relax your brow to avoid looking concerned.', 'brow'); }
+          if(!raise && Brow.up){ Brow.up = false; }
+          if(!tense && Brow.tense){ Brow.tense = false; }
+        }
+
+        // Posture / framing via face scale vs baseline
+        const scale = faceH; // normalized 0..1 of frame height
+        if(Posture.base == null){ Posture.base = scale; }
+        else { Posture.base = Posture.base*0.98 + scale*0.02; }
+        if((now - Posture.last) > CONFIG.POSTURE_COOLDOWN_MS){
+          if(scale > Posture.base * CONFIG.LEAN_IN_RATIO){ Posture.last = now; notify('Leaning in — good for engagement. Keep it natural.', 'posture'); }
+          else if(scale < Posture.base * CONFIG.LEAN_OUT_RATIO){ Posture.last = now; notify('You look a bit far — sit forward slightly to stay framed.', 'posture'); }
+        }
+
+        if(CONFIG.DRAW){ drawLandmarks(ctx, lm); }
+      }
+
+      frames++; if(now - lastTs >= 1000){ frames = 0; lastTs = now; }
+    }
+
+    async function boot(){
+      try{
+        if(!('mediaDevices' in navigator)) throw new Error('No mediaDevices support');
+        await startCamera();
+        await loadModel();
+        loop();
+      }catch(err){
+        console.error(err);
+        notify('Camera or model failed to start', 'mouth');
+      }
+    }
+
+    boot();
+  </script>
+  <script src="/bg.js"></script>
+</body>
+</html>
